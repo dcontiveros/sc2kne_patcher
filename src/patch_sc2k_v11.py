@@ -202,14 +202,14 @@ def apply_patches(data, patches):
         if current == original:
             data[offset:offset + len(patched)] = patched
             results.append({'status': 'PATCHED', 'offset': offset,
-                          'description': patch['description'], 'detail': patch.get('detail', '')})
+                            'description': patch['description'], 'detail': patch.get('detail', '')})
         elif current == patched:
             results.append({'status': 'ALREADY', 'offset': offset,
-                          'description': patch['description'], 'detail': patch.get('detail', '')})
+                            'description': patch['description'], 'detail': patch.get('detail', '')})
         else:
             results.append({'status': 'MISMATCH', 'offset': offset,
-                          'description': patch['description'], 'detail': patch.get('detail', ''),
-                          'expected': original.hex(), 'found': current.hex()})
+                            'description': patch['description'], 'detail': patch.get('detail', ''),
+                            'expected': original.hex(), 'found': current.hex()})
     return bytes(data), results
 
 
@@ -269,9 +269,25 @@ def patch_v11(folder: str, output_suffix: str = '-v11', quiet: bool = False) -> 
         print()
     client_ok, client_md5 = patch_file(client_in, client_out, CLIENT_V11_PATCHES, "CLIENT", quiet=quiet)
 
-    return server_ok and client_ok, {
-        'server': {'output': server_out, 'success': server_ok, 'md5': server_md5},
-        'client': {'output': client_out, 'success': client_ok, 'md5': client_md5}
+    # Verify MD5 checksums
+    server_verified = server_md5 == EXPECTED_MD5['server_patched']
+    client_verified = client_md5 == EXPECTED_MD5['client_patched']
+
+    if not quiet:
+        print()
+        print("MD5 Verification:")
+        if server_verified:
+            print(f"  [OK] Server: {server_md5}")
+        else:
+            print(f"  [!!] Server: {server_md5} (expected {EXPECTED_MD5['server_patched']})")
+        if client_verified:
+            print(f"  [OK] Client: {client_md5}")
+        else:
+            print(f"  [!!] Client: {client_md5} (expected {EXPECTED_MD5['client_patched']})")
+
+    return server_ok and client_ok and server_verified and client_verified, {
+        'server': {'output': server_out, 'success': server_ok, 'md5': server_md5, 'expected_md5': EXPECTED_MD5['server_patched'], 'verified': server_verified},
+        'client': {'output': client_out, 'success': client_ok, 'md5': client_md5, 'expected_md5': EXPECTED_MD5['client_patched'], 'verified': client_verified}
     }
 
 

@@ -2,6 +2,7 @@
 .idea/
 .zed/
 .DS_Store
+__pycache__/
 
 # binaries
 files/2KNET/
