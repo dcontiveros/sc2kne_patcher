@@ -1,0 +1,9 @@
+# Editor configs
+.idea/
+.zed/
+.DS_Store
+
+# binaries
+files/2KNET/
+files/update/
+
