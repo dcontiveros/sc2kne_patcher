@@ -6,4 +6,6 @@
 # binaries
 files/2KNET/
 files/update/
+files/*.iso
+files/*.exe
 

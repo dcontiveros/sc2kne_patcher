@@ -40,7 +40,7 @@ EXPECTED_MD5 = {
     'server_original': '6c412cf27726879aaa97d75db857a601',
     'client_original': '9942b057f14fa995cfe8d710e6c1b9bf',
     # Correctly patched v1.1 files
-    'server_patched': '87107cd431db0984681e495952675b9f',
+    'server_patched': 'aa4b5abfe5f6556a9d75c48ae6382df9',
     'client_patched': '64f00668b8caf64cc1757c4a584e7196',
 }
 
@@ -128,25 +128,31 @@ SERVER_V11_PATCHES = [
         'description': 'Fix NEWSPAPER mutex wait',
         'detail': 'INFINITE -> 0ms'
     },
-    # Dialog fix: Show only "Internet" option
+    # Dialog fix: Show only "Internet" option (32-byte patch)
+    # Must set edi = SendMessageA because code after jump uses 'call edi'
     {
         'offset': 0x1d609,
         'original': bytes([
+            # Original 24 bytes
             0x56, 0x68, 0x70, 0xe3, 0x41, 0x00, 0xe8, 0x9e,
             0x9e, 0x02, 0x00, 0x6a, 0x00, 0x8b, 0x46, 0x78,
-            0x6a, 0x00, 0x8b, 0x3d, 0xf4, 0x9a, 0x48, 0x00
+            0x6a, 0x00, 0x8b, 0x3d, 0xf4, 0x9a, 0x48, 0x00,
+            # Next 8 bytes (LB_RESETCONTENT call we're replacing)
+            0x68, 0x8b, 0x01, 0x00, 0x00, 0x50, 0xff, 0xd7
         ]),
         'patched': bytes([
-            0x8b, 0x46, 0x78,                    # mov eax, [esi+78h]
+            0x8b, 0x46, 0x78,                    # mov eax, [esi+78h] - listbox hwnd
+            0x8b, 0x3d, 0xf4, 0x9a, 0x48, 0x00,  # mov edi, [0x489af4] - SendMessageA
             0x68, 0x05, 0x54, 0x47, 0x00,        # push 0x475405 "Internet"
             0x6a, 0x00,                          # push 0
             0x68, 0x80, 0x01, 0x00, 0x00,        # push 0x180 LB_ADDSTRING
             0x50,                                # push eax
-            0xff, 0x15, 0xf4, 0x9a, 0x48, 0x00,  # call [SendMessageA]
-            0xeb, 0x7f                           # jmp +127 to selection
+            0xff, 0xd7,                          # call edi
+            0xeb, 0x7d,                          # jmp +125 to selection code
+            0x90, 0x90, 0x90, 0x90, 0x90, 0x90,  # nop padding
         ]),
         'description': 'Show only "Internet" in dialog',
-        'detail': 'Skip DirectPlay enumeration'
+        'detail': 'Skip DirectPlay enumeration, set edi for later calls'
     },
     # Write "Internet" string to data section
     {
