@@ -1,14 +1,51 @@
 import hashlib
 import requests
-import os
 import sys
 import pycdlib
-import shutil
 import is3extract
+import os
+import shutil
+import platform
 from pathlib import Path
 from urllib.parse import urlparse, unquote
-# local files
-from patch_sc2k_v11 import patch_v11
+import sc2knet_patcher
+
+def handle_dplay_dependency(path):
+    """
+    Checks for dplayx.dll based on OS and manages its migration to FILES_DIR.
+    """
+    system = platform.system()
+    target_path = os.path.join(path, "dplay.dll")
+    win_source = r"C:\Windows\SysWOW64\dplayx.dll"
+
+    # Ensure the destination directory exists
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    if system == "Windows":
+        if os.path.exists(win_source):
+            try:
+                shutil.copy2(win_source, target_path)
+                print(f"Successfully copied dplayx.dll to {path}")
+            except PermissionError:
+                print("Error: Permission denied. Please run as Administrator.")
+        else:
+            # File missing - likely Legacy Components are disabled
+            print("--- Action Required ---")
+            print("dplayx.dll not found in SysWOW64.")
+            print("Please enable 'Legacy Components' (DirectPlay) in Windows Features.")
+            input("After enabling, press Enter to attempt the copy again...")
+
+            if os.path.exists(win_source):
+                shutil.copy2(win_source, target_path)
+                print("Copy successful!")
+            else:
+                print("File still not found. Please ensure Legacy Components are fully installed.")
+
+    else:
+        # Non-Windows systems
+        print(f"OS detected: {system}")
+        print(f"Manual Action Required: Please manually add 'dplayx.dll' to the directory: {path}")
 
 def get_project_paths():
     """Calculates paths relative to this script's location."""
@@ -78,9 +115,9 @@ def file_checks(current_files, expected_hashes):
         return False
 
     # Now we do some md5sum comparison. The files could be named something else so we only go by md5
-    for hash in expected_hashes:
-        if hash not in current_files:
-            print(f"MD5sum {hash} MISSING ❌")
+    for file_hash in expected_hashes:
+        if file_hash not in current_files:
+            print(f"MD5sum {file_hash} MISSING ❌")
             print()
             return False
 
@@ -88,10 +125,10 @@ def file_checks(current_files, expected_hashes):
     return True
 
 def download_binary_file(url, folder_path):
-    '''
+    """
     Downloads binary files, sanitizes URL encoding (like %20),
     and displays a live MB counter.
-    '''
+    """
     try:
         # 1. Extract and sanitize filename (converts %20 to spaces, etc.)
         raw_path = urlparse(url).path
@@ -127,9 +164,9 @@ def download_binary_file(url, folder_path):
 
 
 def extract_iso_recursive(iso_path, iso_internal_folder, local_dest_root):
-    '''
+    """
     Extract directory on ISO and its contents, including subdirs
-    '''
+    """
     iso = pycdlib.PyCdlib()
     iso.open(iso_path)
 
@@ -168,9 +205,9 @@ def extract_iso_recursive(iso_path, iso_internal_folder, local_dest_root):
 
 
 def check_updated_game_files(updater_files, path):
-    '''
+    """
     Does a final check of the md5sum in the game directory
-    '''
+    """
     print("Checking updater MD5sums ...")
     for key in updater_files.keys():
         file_path = path / key
@@ -188,7 +225,6 @@ def main():
     2. Perform shasum for testing
     3. Extract/Update game client and server
     4. Interopability patch
-    5. User Experience patch (click4dyman)
     """
     # get paths
     paths = get_project_paths()
@@ -214,6 +250,10 @@ def main():
     print("This program will retrieve/patch everything needed to get this game running on modern Windows.")
     print()
 
+    print("╔══════════════════════╗")
+    print("║   FILE CHECK PHASE   ║")
+    print("╚══════════════════════╝")
+
     # Start of file checks
     print("Checking for required files ...")
     print()
@@ -227,7 +267,7 @@ def main():
     file_check_result = file_checks(current_files, expected_hashes)
 
     # We only want a True result to continue here
-    if file_check_result == False:
+    if not file_check_result:
         print("The installer did not find all the required files.")
         print("To continue offline, grab the files from the following URLs and place them in the files directory:")
         print(f"ISO: {urls.get("iso-page")}")
@@ -246,7 +286,7 @@ def main():
             # repopulate current files and check once more
             current_files = map_directory_hashes(paths['files'], ignore_file="md5sum.txt")
             file_check_result = file_checks(current_files, expected_hashes)
-            if file_check_result == False:
+            if not file_check_result:
                 print(f"DOWNLOAD FAILED ❌")
                 print("Please check the above URLs.")
                 sys.exit(0)
@@ -254,6 +294,11 @@ def main():
 
     # If we make it here all checks passed
     print("FILE CHECKS PASSED ✅")
+    print()
+
+    print("╔══════════════════════╗")
+    print("║   EXTRACTION PHASE   ║")
+    print("╚══════════════════════╝")
 
     # insert iso and patch into paths dict
     iso_filename = current_files.get("a6ad08f1b2d53045e18beb4c1a5da846")
@@ -297,25 +342,41 @@ def main():
     game_final_check = check_updated_game_files(updater_files, paths["game_dir"])
 
     # bomb out if check failes
-    if game_final_check == False:
+    if not game_final_check:
         print("EXTRACTION FAILED! OPEN AN ISSUE ON GITHUB ❌")
         sys.exit(0)
 
+    # Copy portable.dll
+    print("Copying portable.dll SHIM from repo to game directory ...")
+    shutil.copy2(paths["files"] / "portable.dll", paths["game_dir"])
+
+    # Copy updater files to game directory
     # Start patching here
     print("\nSimcity 2000: Network Edition extraction successful.")
+    print()
+
+    print("╔══════════════════════╗")
+    print("║    PATCHING PHASE    ║")
+    print("╚══════════════════════╝")
     print("We will now patch the game to allow a seamless run on modern Windows systems.")
 
     # run patch
-    success, details = patch_v11(paths['game_dir'], quiet=True)
+    patched_ok = sc2knet_patcher.patch_all(str(paths["game_dir"]))
+    verified_ok = sc2knet_patcher.verify_all(str(paths["game_dir"]))
 
-    # Verify MD5 matches
-    if details['server']['md5'] == details['server']['expected_md5']:
-        print("SERVER PATCHES VERIFIED ✅")
-    else:
-        print("PATCHING FAILED. OPEN A TICKET ON GITHUB ❌")
+    if not (patched_ok and verified_ok):
+        raise RuntimeError("PATCHING FAILED! OPEN AN ISSUE ON GITHUB ❌")
 
-    print("This ends the patching. You should now be able to launch the patched version inside the 2KNET directory.")
-    print("Use the executable ending in -v11.")
+    print("PATCHING SUCCESSFUL ✅\n")
+
+    # Check for dplay.dll
+    print("╔══════════════════════╗")
+    print("║     FINAL CHECKS     ║")
+    print("╚══════════════════════╝")
+    handle_dplay_dependency(paths["game_dir"])
+
+    print("🏗️ Enjoy this amazing city simulator. 🏗️")
+    print()
 
 
 if __name__ == "__main__":
