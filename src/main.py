@@ -15,7 +15,7 @@ def handle_dplay_dependency(path):
     Checks for dplayx.dll based on OS and manages its migration to FILES_DIR.
     """
     system = platform.system()
-    target_path = os.path.join(path, "dplayx.dll")
+    target_path = os.path.join(path, "dplay.dll")
     win_source = r"C:\Windows\SysWOW64\dplayx.dll"
 
     # Ensure the destination directory exists
@@ -294,6 +294,7 @@ def main():
 
     # If we make it here all checks passed
     print("FILE CHECKS PASSED ✅")
+    print()
 
     print("╔══════════════════════╗")
     print("║   EXTRACTION PHASE   ║")
@@ -352,6 +353,7 @@ def main():
     # Copy updater files to game directory
     # Start patching here
     print("\nSimcity 2000: Network Edition extraction successful.")
+    print()
 
     print("╔══════════════════════╗")
     print("║    PATCHING PHASE    ║")
@@ -374,6 +376,7 @@ def main():
     handle_dplay_dependency(paths["game_dir"])
 
     print("🏗️ Enjoy this amazing city simulator. 🏗️")
+    print()
 
 
 if __name__ == "__main__":
