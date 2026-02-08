@@ -15,7 +15,6 @@ Usage:
 
 import hashlib
 import os
-import struct
 import sys
 from pathlib import Path
 
