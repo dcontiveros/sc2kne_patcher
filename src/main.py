@@ -7,8 +7,6 @@ import shutil
 import is3extract
 from pathlib import Path
 from urllib.parse import urlparse, unquote
-# local files
-from patch_sc2k_v11 import patch_v11
 
 def get_project_paths():
     """Calculates paths relative to this script's location."""
@@ -301,21 +299,21 @@ def main():
         print("EXTRACTION FAILED! OPEN AN ISSUE ON GITHUB ❌")
         sys.exit(0)
 
-    # Start patching here
-    print("\nSimcity 2000: Network Edition extraction successful.")
-    print("We will now patch the game to allow a seamless run on modern Windows systems.")
-
-    # run patch
-    success, details = patch_v11(paths['game_dir'], quiet=True)
-
-    # Verify MD5 matches
-    if details['server']['md5'] == details['server']['expected_md5']:
-        print("SERVER PATCHES VERIFIED ✅")
-    else:
-        print("PATCHING FAILED. OPEN A TICKET ON GITHUB ❌")
-
-    print("This ends the patching. You should now be able to launch the patched version inside the 2KNET directory.")
-    print("Use the executable ending in -v11.")
+    # # Start patching here
+    # print("\nSimcity 2000: Network Edition extraction successful.")
+    # print("We will now patch the game to allow a seamless run on modern Windows systems.")
+    #
+    # # run patch
+    # success, details = patch_v11(paths['game_dir'], quiet=True)
+    #
+    # # Verify MD5 matches
+    # if details['server']['md5'] == details['server']['expected_md5']:
+    #     print("SERVER PATCHES VERIFIED ✅")
+    # else:
+    #     print("PATCHING FAILED. OPEN A TICKET ON GITHUB ❌")
+    #
+    # print("This ends the patching. You should now be able to launch the patched version inside the 2KNET directory.")
+    # print("Use the executable ending in -v11.")
 
 
 if __name__ == "__main__":
