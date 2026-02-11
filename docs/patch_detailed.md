@@ -9,14 +9,14 @@ Network Edition binaries. This document grows as new patch sets are added.
 
 **Purpose**: Fix compatibility with modern Windows and enable portable network play.
 **Source**: IPSS v1.5 bsdiff patches (`interop/_setup/_tools/bsdiff/patch/`)
-**Applied by**: `code/apply_patches.py`
-**Total change regions**: 307 across all 6 files
+**Applied by**: `interop/_setup/sc2knet_patcher.py`
+**Total changed bytes**: 2,137 across 6 files (155 change regions)
 
 ---
 
 ### 2KCLIENT.EXE
 
-**113 change regions** | 1,422,336 bytes (unchanged size)
+**67 change regions, 1,116 changed bytes** | 1,422,336 bytes (unchanged size)
 Source MD5: `9942b057f14fa995cfe8d710e6c1b9bf`
 Target MD5: `6deb7e19030cde50fbd5ba0aae699fe4`
 
@@ -118,10 +118,11 @@ New multiplayer session handler at 0x03383F (replaces INT3 padding):
 
 #### Chat Window / IPC Fixes
 
-Redirect validation check at 0x0380B0:
+Redirect jump to new code cave at 0x0380B0 (old bytes are CC INT3 padding):
 ```
-0x038092  old: 91 A2 FC FF  new: 1A 00 00 00   ; change relative jump target
-0x0380B0  83 3D 28 C1 53 00 00 75 01 C3        ; CMP [53C128],0; JNZ +1; RET (skip if unconfigured)
+0x038092  old: 91 A2 FC FF  new: 1A 00 00 00   ; change relative jump target to 0x0380B0
+0x0380B0  [INSERT into INT3 code cave]
+          83 3D 28 C1 53 00 00 75 01 C3        ; CMP [53C128],0; JNZ +1; RET (skip if unconfigured)
 ```
 
 #### Buffer Overrun Guard
@@ -209,24 +210,29 @@ Window class identifiers renamed from original Maxis names to unique names,
 preventing conflicts with other running instances:
 
 ```
-0x135C38  "HerIAmServer" -> "2KNtC_2KNetC"     ; mutex / class name
-0x135C44  "Server"       -> "2KNetC"            ; 4 occurrences
-0x1367F4  "\0UberClient" -> "2KNetC Uber"       ; display name
-0x13928C  "Server"       -> "2KNetC"
-0x13AAA8  "Client"       -> "2KNetC"
+0x135C38  "HereIAm\0\0\0\0\0Server" -> "2KNetC_\0\0\0\0\02KNetC"  ; mutex (18 bytes, null-separated)
+0x135C5C  "Server"       -> "2KNetC"            ; window class name
+0x135C78  "Server"       -> "2KNetC"            ; window class name
+0x135C90  "Server"       -> "2KNetC"            ; window class name
+0x13928C  "Server"       -> "2KNetC"            ; session name
+0x13AAA8  "Client"       -> "2KNetC"            ; client->2KNetC rename
+0x1367F4  "UberClient C" -> "2KNetC Uber "      ; display name (starts with 'U' not '\0')
+0x13919C  "UberClient Process Mutex" -> "2KNetC Uber Process Mutex" ; (24 bytes)
 0x13A9E8  "\0\0\0\0"     -> "News"              ; new menu label
 0x13A9F0  "\0\0\0\0"     -> "Goto"              ; new menu label
 0x13A9F8  "\0\0\0\0\0\0" -> "Budget"            ; new menu label
-0x13B394  "ton\0\0\0\0"  -> "2KNetC "           ; window class suffix
-0x13C77C  "ton\0\0\0\0"  -> "2KNetC "           ; window class suffix
-0x13C78D  "B"            -> "M"                 ; "Button" -> "Mutex" (class rename)
+0x13B394  "IT BLEEDS IT LEADS SEMAPHORE" -> "2KNetC Newspaper Semaphore\0_"  ; (28 bytes)
+0x13C77C  "SIMCITY_ONLINE_NEWSPAPER_MUTEX" -> "2KNetC Newspaper Mutex\0_______" ; (30 bytes)
+0x13C78D  "W"            -> "M"                 ; from "NEWSPAPER" -> "Mutex" context
+0x13926B  "2"            -> "_"                 ; separator
+0x13D764  "2"            -> "_"                 ; separator
 ```
 
 ---
 
 ### 2KSERVER.EXE
 
-**55 change regions** | 553,984 bytes (unchanged size)
+**35 change regions, 737 changed bytes** | 553,984 bytes (unchanged size)
 Source MD5: `6c412cf27726879aaa97d75db857a601`
 Target MD5: `f5e61fc87ea2023b55d7456e694f5d25`
 
@@ -323,18 +329,26 @@ Hardcoded IP changed from original Maxis server to localhost:
 #### String / Branding Renames
 
 ```
-0x0761C0  "HerIAmServer" -> "2KNtS_2KNetS"     ; mutex / class name
-0x0761C8  "Server"       -> "2KNetS"            ; 4 occurrences
+0x0761C0  "HereIAm\0"    -> "2KNetS_\0"         ; mutex prefix (8 bytes, null at +7)
+0x0761C8  "Server"       -> "2KNetS"            ; within mutex block
+0x0761DC  "Server"       -> "2KNetS"            ; window class name
+0x0761F4  "Server"       -> "2KNetS"            ; window class name
+0x076208  "Server"       -> "2KNetS"            ; window class name
+0x073A68  "Server"       -> "2KNetS"            ; session name
+0x0787F8  "Server"       -> "2KNetS"            ; version info
+0x07871C  "Client"       -> "2KNetS"            ; client->server rename
 0x073ACC  "Your Name"    -> "Nobody\0\0\0"      ; default player name
-0x078734  "\0UberClient" -> "2KNetS Uber"       ; display name
-0x07871C  "Client"       -> "2KNetS"
-0x0787F8  "Server"       -> "2KNetS"
+0x0738EC  "UberClient Process Mutex" -> "2KNetS Uber Process Mute" ; (24 bytes)
+0x078734  "UberClient C" -> "2KNetS Uber "      ; display name (starts with 'U' not '\0')
+0x073A58  "2"            -> "_"                 ; separator
+0x073E7C  "IT BLEEDS IT LEADS SEMAPHORE" -> "2KNetS Newspaper Semaphore\0_" ; (28 bytes)
+0x07892C  "SIMCITY_ONLINE_NEWSPAPER_MUTEX" -> "2KNetS Newspaper Mutex\0_______" ; (30 bytes)
 ```
 
-#### Maxis Branding Case Change
+#### Maxis Branding Case Change (UTF-16LE)
 
 ```
-0x07DE0E  "A" -> "a"  ; "AXIS" -> "axis" (in "MaXIS" -> "Maxis")
+0x07DE0E  "A" -> "a"  ; "MAXIS" -> "Maxis" (UTF-16LE: bytes at 0E,10,12,14)
 0x07DE10  "X" -> "x"
 0x07DE12  "I" -> "i"
 0x07DE14  "S" -> "s"
@@ -344,7 +358,7 @@ Hardcoded IP changed from original Maxis server to localhost:
 
 ### USARES.DLL
 
-**106 change regions** | 1,471,488 bytes (unchanged size)
+**45 change regions, 229 changed bytes** | 1,471,488 bytes (unchanged size)
 Source MD5: `05b105b841e3fe34fe7f37cae67b6d74`
 Target MD5: `f4139ec4ecaeef79e219afb9f41bb90d`
 
@@ -390,21 +404,25 @@ resources, likely fixing rendering artifacts on modern display drivers:
 
 #### UI Text Rewording (UTF-16LE)
 
+Note: a 9-byte insertion ("Skip" label) via bsdiff shifts content in this region.
+Pre-patch and post-patch byte values are shown as they appear at each offset.
+
 ```
-0x15CDCC  "ame" -> " in"               ; partial word fix
-0x15CE36  size byte: 0x1D -> 0x18      ; string length adjustment
-0x15CE54  "go to discuss" -> "show new" ; tooltip reword
-0x15CE78  "M" -> "m"                    ; case fix
-0x15CE92  "S" -> "s"                    ; case fix
-0x15CEA8  "Handle" -> "year"            ; UI label
+0x15CDCC  old: 0x15 new: 0x06           ; string length prefix
+0x15CDD4  "s pl" -> " in\0"             ; reword (UTF-16LE partial)
+0x15CE36  old: 0x72 ('r') new: 0x18     ; content shifted by insertion
+0x15CE54  "Toggle Music" -> "show news"  ; tooltip reword (UTF-16LE)
+0x15CE78  old: "g" new: "m"             ; shifted content
+0x15CE92  old: "o" new: "s"             ; shifted content
+0x15CEA8  "Handle" -> "yearly"           ; UI label (UTF-16LE)
 0x15CEB6  "B" -> "b"                    ; case fix
 ```
 
-New menu item inserted at 0x15CE9C: `"Skip"` (UTF-16LE: `53 00 6B 00 69 00 70`)
+New menu item inserted at 0x15CE9C: `"Skip"` (UTF-16LE: `12 00 53 00 6B 00 69 00 70`)
 
 #### Newline-to-Space Fixes (0x160F38–0x163A20)
 
-Eight occurrences of `0x0A` (newline) changed to `0x20` (space) in dialog
+Nine occurrences of `0x0A` (newline) changed to `0x20` (space) in dialog
 resource strings, fixing text display in multi-line controls:
 
 ```
@@ -426,16 +444,16 @@ resource strings, fixing text display in multi-line controls:
 
 ### USAHORES.DLL
 
-**28 change regions** | 29,696 bytes (unchanged size)
+**4 change regions, 31 changed bytes** | 29,696 bytes (unchanged size)
 Source MD5: `a3cf6380bf74df2e8e266122f3bfa276`
 Target MD5: `865fcd4bda8341b978c3701be9e0a6f7`
 
 #### Maxis Branding Case Change
 
-Two occurrences (import table entries):
+Two occurrences (import table entries, UTF-16LE — bytes at every-other offset):
 ```
-0x0012E4  "AXIS" -> "axis"  ; "MAXIS" -> "Maxis" (lowercased)
-0x0025B6  "AXIS" -> "axis"  ; second occurrence
+0x0012E4  "AXIS" -> "axis"  ; "MAXIS" -> "Maxis" (4 bytes changed: E4,E6,E8,EA)
+0x0025B6  "AXIS" -> "axis"  ; second occurrence (4 bytes changed: B6,B8,BA,BC)
 ```
 
 #### Dialog Resource Fix
@@ -475,7 +493,7 @@ The entire string "Join Existing Game" is replaced with underscores
 
 ### WINSCURK.EXE
 
-**4 change regions** | 2,092,216 bytes (unchanged size)
+**3 change regions, 23 changed bytes** | 2,092,216 bytes (unchanged size)
 Source MD5: `4e74e05aca5b7f73e2e91b4222e397df`
 Target MD5: `c5ac16701cfe62de87103bf4f4e74248`
 
@@ -483,9 +501,8 @@ Target MD5: `c5ac16701cfe62de87103bf4f4e74248`
 
 Fix the resource DLL filename from a printf-style format string to a literal name:
 ```
-0x086A14  old: "%s.DL\0C"    -> "USA.DLL\0"
-          old: 25 73 2E 44 4C 00 43
-          new: 55 53 41 2E 44 4C 00
+0x086A14  old: 25 73 2E 44 4C 4C 00 43  "%s.DLL\0C"  (8 bytes; byte at 0x086A19 unchanged)
+          new: 55 53 41 2E 44 4C 4C 00  "USA.DLL\0"
 ```
 
 #### DLL Import Redirect
@@ -500,7 +517,7 @@ Two occurrences of ADVAPI32 -> portable (scenario editor has two import tables):
 
 ### MAXHELP.EXE
 
-**1 change region** | 33,280 bytes (unchanged size)
+**1 change region, 1 changed byte** | 33,280 bytes (unchanged size)
 Source MD5: `4966a5ea9d79518241dd587f0e0bd135`
 Target MD5: `5119465effc9deaa02ca1899a0f8f4aa`
 
