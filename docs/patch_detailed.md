@@ -9,7 +9,6 @@ Network Edition binaries. This document grows as new patch sets are added.
 
 **Purpose**: Fix compatibility with modern Windows and enable portable network play.
 **Source**: IPSS v1.5 bsdiff patches (`interop/_setup/_tools/bsdiff/patch/`)
-**Applied by**: `interop/_setup/sc2knet_patcher.py`
 **Total changed bytes**: 2,137 across 6 files (155 change regions)
 
 ---
