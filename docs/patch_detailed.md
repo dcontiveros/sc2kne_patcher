@@ -8,7 +8,9 @@ Network Edition binaries. This document grows as new patch sets are added.
 ## Patch Set 1: Interoperability (v1.1-fixed)
 
 **Purpose**: Fix compatibility with modern Windows and enable portable network play.
+
 **Source**: IPSS v1.5 bsdiff patches (`interop/_setup/_tools/bsdiff/patch/`)
+
 **Total changed bytes**: 2,137 across 6 files (155 change regions)
 
 ---
