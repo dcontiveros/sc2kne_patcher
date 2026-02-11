@@ -55,9 +55,4 @@ alongside the binaries:
 
 ## Running the Patcher
 
-```
-python3 code/apply_patches.py --source_dir <unpatched files> --output_dir <destination>
-```
-
-The script auto-discovers patch files from the repo. Files not found in `--source_dir`
-are skipped. Output files keep their original names.
+Python based patching has been implemented. Refer to the original README.md file to run the patches.
