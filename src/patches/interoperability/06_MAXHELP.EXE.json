@@ -1,0 +1,13 @@
+{
+  "target": "MAXHELP.EXE",
+  "new_size": 33280,
+  "triples": [
+    [33280, 0, -7499]
+  ],
+  "diff_mods": {
+    "25780": 189
+  },
+  "extra": "",
+  "pre_md5": "4966A5EA9D79518241DD587F0E0BD135",
+  "post_md5": "5119465EFFC9DEAA02CA1899A0F8F4AA"
+}
